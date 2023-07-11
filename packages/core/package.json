@@ -1,0 +1,21 @@
+{
+	"name": "@trophy-room/core",
+	"version": "0.0.0",
+	"main": "./index.tsx",
+	"types": "./index.tsx",
+	"license": "MIT",
+	"scripts": {
+		"lint": "eslint \"**/*.ts*\"",
+		"test": "jest",
+		"test:watch": "jest --watchAll"
+	},
+	"devDependencies": {
+		"@types/jest": "^29.5.3",
+		"eslint": "^7.32.0",
+		"eslint-config-custom": "*",
+		"jest": "^29.6.1",
+		"ts-jest": "^29.1.1",
+		"tsconfig": "*",
+		"typescript": "^4.5.2"
+	}
+}

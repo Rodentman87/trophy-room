@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "core",
+			"path": "packages/core"
+		},
+		{
+			"name": "tsconfig",
+			"path": "packages/tsconfig"
+		},
+		{
+			"name": "eslint-config-custom",
+			"path": "packages/eslint-config-custom"
+		}
+	],
+	"settings": {
+		"jest.disabledWorkspaceFolders": [
+			"tsconfig",
+			"eslint-config-custom",
+			"trophy-room"
+		]
+	}
+}
