@@ -17,6 +17,7 @@ export interface AchievementMetricComparison {
 	metric: string;
 	comparisonType: string;
 	value: unknown;
+	options?: unknown;
 }
 
 export interface AchievementMetricOr {
@@ -38,6 +39,8 @@ export interface AchievementMetricNever {
 	type: "never";
 }
 
+// This type is a bit of a hack, but it makes mapped types much more readable for the end user.
+// eslint-disable-next-line @typescript-eslint/ban-types
 type Prettify<T> = T & {};
 
 export interface MetricsStore<Metrics extends BaseMetric<string, unknown>[]> {
@@ -49,7 +52,9 @@ export interface MetricsStore<Metrics extends BaseMetric<string, unknown>[]> {
 			> as Extract<Metrics[number], { id: Metric }>[CompareFunction] extends (
 				value: Extract<Metrics[number], { id: Metric }>["valueType"],
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				target: any
+				target: any,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				options?: any
 			) => boolean
 				? CompareFunction
 				: never]: Extract<
@@ -57,9 +62,14 @@ export interface MetricsStore<Metrics extends BaseMetric<string, unknown>[]> {
 				{ id: Metric }
 			>[CompareFunction] extends (
 				value: Extract<Metrics[number], { id: Metric }>["valueType"],
-				target: infer T
+				target: infer T,
+				options: infer O
 			) => boolean
-				? (value: T) => AchievementMetricComparison
+				? unknown extends O
+					? (value: T) => AchievementMetricComparison
+					: undefined extends O
+					? (value: T, options?: O) => AchievementMetricComparison
+					: (value: T, options: O) => AchievementMetricComparison
 				: never;
 		}>;
 	};
@@ -86,11 +96,12 @@ export class MetricsStore<Metrics extends BaseMetric<string, unknown>[]> {
 										comparisonFunction.toString() in
 										this.metrics.get(metric.toString())!
 									) {
-										return (value: unknown) => ({
+										return (value: unknown, options?: unknown) => ({
 											type: "comparison",
 											metric: metric.toString(),
 											comparisonType: comparisonFunction.toString(),
 											value,
+											options,
 										});
 									}
 									throw new Error(
