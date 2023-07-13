@@ -1,18 +1,18 @@
 import { NumberMetric } from "./NumberMetric";
 
 describe("NumberMetric", () => {
-	const metric = new NumberMetric("test");
+	const metric = new NumberMetric("test", 0);
 
 	it("should serialize values", () => {
-		expect(metric.serializeValue(5)).toBe("5");
-		expect(metric.serializeValue(5.5)).toBe("5.5");
-		expect(metric.serializeValue(5.555)).toBe("5.555");
+		expect(metric.serializeValue(5)).toBe(5);
+		expect(metric.serializeValue(5.5)).toBe(5.5);
+		expect(metric.serializeValue(5.555)).toBe(5.555);
 	});
 
 	it("should deserialize values", () => {
-		expect(metric.deserializeValue("5")).toBe(5);
-		expect(metric.deserializeValue("5.5")).toBe(5.5);
-		expect(metric.deserializeValue("5.555")).toBe(5.555);
+		expect(metric.deserializeValue(5)).toBe(5);
+		expect(metric.deserializeValue(5.5)).toBe(5.5);
+		expect(metric.deserializeValue(5.555)).toBe(5.555);
 	});
 
 	it("should compare values for greaterThan", () => {

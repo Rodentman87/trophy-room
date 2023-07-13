@@ -1,16 +1,16 @@
 import { BooleanMetric } from "./BooleanMetric";
 
 describe("BooleanMetric", () => {
-	const metric = new BooleanMetric("test");
+	const metric = new BooleanMetric("test", false);
 
 	it("should serialize values", () => {
-		expect(metric.serializeValue(true)).toBe("true");
-		expect(metric.serializeValue(false)).toBe("false");
+		expect(metric.serializeValue(true)).toBe(true);
+		expect(metric.serializeValue(false)).toBe(false);
 	});
 
 	it("should deserialize values", () => {
-		expect(metric.deserializeValue("true")).toBe(true);
-		expect(metric.deserializeValue("false")).toBe(false);
+		expect(metric.deserializeValue(true)).toBe(true);
+		expect(metric.deserializeValue(false)).toBe(false);
 	});
 
 	it("should compare values for is", () => {
