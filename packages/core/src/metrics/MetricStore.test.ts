@@ -138,4 +138,23 @@ describe("MetricsStore", () => {
 		expect(saveFunction).toBeCalledTimes(1);
 		expect(saveFunction).toBeCalledWith('{"number":5,"boolean":true}');
 	});
+
+	it("should emit an event when a metric is updated", () => {
+		const listener = jest.fn();
+		store.on("metricsUpdated", listener);
+		store.setMetric("number", 5);
+		expect(listener).toBeCalledTimes(1);
+		expect(listener).toBeCalledWith(["number"]);
+	});
+
+	it("should only emit one event when multiple metrics are updated with updateMultiple", () => {
+		const listener = jest.fn();
+		store.on("metricsUpdated", listener);
+		store.updateMultiple(() => {
+			store.setMetric("number", 5);
+			store.setMetric("boolean", true);
+		});
+		expect(listener).toBeCalledTimes(1);
+		expect(listener).toBeCalledWith(["number", "boolean"]);
+	});
 });

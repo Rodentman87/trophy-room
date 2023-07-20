@@ -1,8 +1,8 @@
-import { AchievementMetric } from "../metrics/MetricsStore";
+import { AchievementMetricRequirement } from "../metrics/MetricsStore";
 
 export interface AchievementOptions {
 	id: string;
-	metrics: AchievementMetric;
+	metrics: AchievementMetricRequirement;
 }
 
 export class Achievement {

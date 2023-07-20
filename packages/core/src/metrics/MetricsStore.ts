@@ -1,3 +1,4 @@
+import EventEmitter from "eventemitter3";
 import { BaseMetric, Serializable } from "./BaseMetric";
 
 type MetricValueType<
@@ -5,7 +6,7 @@ type MetricValueType<
 	ID extends Metrics[number]["id"]
 > = Extract<Metrics[number], { id: ID }>["valueType"];
 
-export type AchievementMetric =
+export type AchievementMetricRequirement =
 	| AchievementMetricComparison
 	| AchievementMetricOr
 	| AchievementMetricAnd
@@ -22,21 +23,25 @@ export interface AchievementMetricComparison {
 
 export interface AchievementMetricOr {
 	type: "or";
-	metrics: AchievementMetric[];
+	metrics: AchievementMetricRequirement[];
 }
 
 export interface AchievementMetricAnd {
 	type: "and";
-	metrics: AchievementMetric[];
+	metrics: AchievementMetricRequirement[];
 }
 
 export interface AchievementMetricNot {
 	type: "not";
-	metric: AchievementMetric;
+	metric: AchievementMetricRequirement;
 }
 
 export interface AchievementMetricNever {
 	type: "never";
+}
+
+interface MetricStoreEvents {
+	metricsUpdated: (metrics: string[]) => void;
 }
 
 // This type is a bit of a hack, but it makes mapped types much more readable for the end user.
@@ -84,12 +89,13 @@ export interface MetricsStore<
 // eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class MetricsStore<
 	Metrics extends BaseMetric<string, unknown, Serializable>[]
-> {
+> extends EventEmitter<MetricStoreEvents> {
 	metrics = new Map<string, BaseMetric<string, unknown, Serializable>>();
 	metricValues = new Map<string, unknown>();
 	saveFunction: MetricsStoreOptions["save"];
 	loadFunction: MetricsStoreOptions["load"];
-	private skipSave = false;
+	private updatingMultiple = false;
+	private updatedMetrics: string[] = [];
 
 	/**
 	 * Creates a new metrics store, generally you will only want one metrics store for your entire application.
@@ -97,6 +103,7 @@ export class MetricsStore<
 	 * @param options The options for this store, including the save and load functions
 	 */
 	constructor(metrics: Metrics, options: MetricsStoreOptions) {
+		super();
 		metrics.forEach((metric) => {
 			this.metrics.set(metric.id, metric);
 			// Set the default values initially, but these will be overwritten when loading
@@ -179,10 +186,12 @@ export class MetricsStore<
 	 * @param runner A function that will be run, and any metrics that are updated will be saved all at once
 	 */
 	updateMultiple(runner: () => void) {
-		this.skipSave = true;
+		this.updatingMultiple = true;
+		this.updatedMetrics = [];
 		runner();
-		this.skipSave = false;
+		this.updatingMultiple = false;
 		this.saveMetrics();
+		this.emit("metricsUpdated", this.updatedMetrics);
 	}
 
 	// TODO waiting on https://github.com/microsoft/TypeScript/issues/54965 to uncomment these
@@ -217,7 +226,12 @@ export class MetricsStore<
 		// Set the new value
 		this.metricValues.set(id, newValue);
 		// Save the metrics
-		if (!this.skipSave) this.saveMetrics();
+		if (!this.updatingMultiple) {
+			this.saveMetrics();
+			this.emit("metricsUpdated", [id]);
+		} else {
+			this.updatedMetrics.push(id);
+		}
 	}
 
 	/**
@@ -250,7 +264,7 @@ export class MetricsStore<
 	 * Creates a metric requirement where all the given requirements must be true.
 	 * @param metrics The metrics that must all be true
 	 */
-	and(...metrics: AchievementMetric[]): AchievementMetricAnd {
+	and(...metrics: AchievementMetricRequirement[]): AchievementMetricAnd {
 		return {
 			type: "and",
 			metrics,
@@ -261,7 +275,7 @@ export class MetricsStore<
 	 * Creates a metric requirement where any of the given requirements must be true.
 	 * @param metrics The metrics where any of them can be true
 	 */
-	or(...metrics: AchievementMetric[]): AchievementMetricOr {
+	or(...metrics: AchievementMetricRequirement[]): AchievementMetricOr {
 		return {
 			type: "or",
 			metrics,
@@ -272,7 +286,7 @@ export class MetricsStore<
 	 * Creates a metric requirement where the given requirement must be false.
 	 * @param metric The metric to negate
 	 */
-	not(metric: AchievementMetric): AchievementMetricNot {
+	not(metric: AchievementMetricRequirement): AchievementMetricNot {
 		return {
 			type: "not",
 			metric,
