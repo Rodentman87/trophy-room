@@ -1,10 +1,11 @@
 {
 	"name": "@trophy-room/core",
 	"version": "0.0.0",
-	"main": "./index.tsx",
-	"types": "./index.tsx",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"license": "MIT",
 	"scripts": {
+		"build": "tsc",
 		"lint": "eslint \"**/*.ts*\"",
 		"test": "jest",
 		"test:watch": "jest --watchAll"

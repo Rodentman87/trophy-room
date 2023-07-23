@@ -14,13 +14,18 @@
 		{
 			"name": "eslint-config-custom",
 			"path": "packages/eslint-config-custom"
+		},
+		{
+			"name": "react",
+			"path": "packages/react"
 		}
 	],
 	"settings": {
+		"jest.autoRun": "on-save",
 		"jest.disabledWorkspaceFolders": [
-			"tsconfig",
 			"eslint-config-custom",
-			"trophy-room"
+			"trophy-room",
+			"tsconfig"
 		]
 	}
 }

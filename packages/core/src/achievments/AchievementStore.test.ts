@@ -144,6 +144,34 @@ describe("AchievementStore", () => {
 		expect(mainSave).not.toHaveBeenCalledTimes(5);
 	});
 
+	it("should not grant an achievement if it has already been granted", () => {
+		store.grantAchievement("test");
+		const listener = jest.fn();
+		store.on("achievementGranted", listener);
+		store.grantAchievement("test");
+		store.evaluateAchievement("test");
+		expect(listener).not.toHaveBeenCalledWith("test");
+		expect(store.achievementsMetadata.get("test")?.grantedAt).not.toBeNull();
+		expect(store.metricToAchievementMap.get("test")).not.toContain("test");
+		expect(mainSave).not.toHaveBeenCalledTimes(5);
+		store.revokeAchievement("test");
+		const revokeListener = jest.fn();
+		store.on("achievementRevoked", revokeListener);
+		store.revokeAchievement("test");
+		expect(revokeListener).not.toHaveBeenCalledWith("test");
+	});
+
+	it("should error on an achievement that doesn't exist", () => {
+		// @ts-expect-error - should error
+		expect(() => store.grantAchievement("test6")).toThrow();
+		// @ts-expect-error - should error
+		expect(() => store.evaluateAchievement("test6")).toThrow();
+		// @ts-expect-error - should error
+		expect(() => store.getAchievementMetadata("test6")).toThrow();
+		// @ts-expect-error - should error
+		expect(() => store.revokeAchievement("test6")).toThrow();
+	});
+
 	it("should check all achievements for a relevant metric", () => {
 		const save = jest.fn();
 		const newStore = new AchievementStore(

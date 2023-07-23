@@ -11,6 +11,7 @@ import { Achievement } from "./Achievement";
 
 interface AchievementStoreEvents {
 	achievementGranted: (achievementId: string) => void;
+	achievementRevoked: (achievementId: string) => void;
 }
 
 type BaseAchievementMetadata =
@@ -216,6 +217,35 @@ export class AchievementStore<
 				metric,
 				current.filter((id) => id !== achievementId)
 			);
+		});
+	}
+
+	revokeAchievement(achievementId: Achievements[number]["id"]) {
+		const achievement = this.achievements.get(achievementId);
+		if (!achievement) {
+			throw new Error(`Achievement ${achievementId} does not exist`);
+		}
+		const current = this.achievementsMetadata.get(achievementId)!;
+		if (current?.grantedAt === null) {
+			// Already revoked, do nothing
+			return;
+		}
+		// Update the metadata
+		this.achievementsMetadata.set(achievementId, {
+			...current!,
+			grantedAt: null,
+		});
+		// Save the metadata (if we're not potentially updating multiple achievements)
+		if (!this.evaluatingMultipleAchievements) {
+			this.saveAchievements();
+		}
+		// Emit the event
+		this.emit("achievementRevoked", achievementId);
+		// Add the achievement back to the metric map
+		const relatedMetrics = this.getMetricsFromRequirement(achievement.metrics);
+		relatedMetrics.forEach((metric) => {
+			const current = this.metricToAchievementMap.get(metric) ?? [];
+			this.metricToAchievementMap.set(metric, [...current, achievementId]);
 		});
 	}
 

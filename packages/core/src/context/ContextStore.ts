@@ -16,8 +16,8 @@ export class ContextStore<
 	contextValues = new Map<string, unknown>();
 
 	/**
-	 * Creates a new metrics store, generally you will only want one metrics store for your entire application.
-	 * @param context The list of metrics to be tracked by this store
+	 * Creates a new context store, generally you will only want one context store for your entire application.
+	 * @param context The list of context values to be tracked by this store
 	 * @param options The options for this store, including the save and load functions
 	 */
 	constructor(context: ContextValues) {

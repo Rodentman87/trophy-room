@@ -30,7 +30,8 @@ describe("TrophyRoom", () => {
 		],
 		{
 			save: () => {},
-			load: () => "{}",
+			load: () =>
+				'{"test":{"grantedAt":"2021-01-01T00:00:00.000Z"},"invalid":{}}',
 			metricsStore: metricStore,
 		}
 	);
@@ -46,6 +47,7 @@ describe("TrophyRoom", () => {
 
 	it("should grant an achievement when the metrics are updated", async () => {
 		await trophyRoom.waitForLoad();
+		trophyRoom.achievements.revokeAchievement("test");
 		const listener = jest.fn();
 		trophyRoom.achievements.on("achievementGranted", listener);
 		metricStore.setMetric("test", 11);
