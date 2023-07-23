@@ -1,3 +1,4 @@
+import { ContextStore, NumberContextValue } from "../context";
 import { MetricsStore, NumberMetric } from "../metrics";
 import { Achievement } from "./Achievement";
 import { AchievementStore } from "./AchievementStore";
@@ -11,42 +12,54 @@ describe("AchievementStore", () => {
 		],
 		{
 			save: () => {},
-			load: () => "",
+			load: () => "{}",
 		}
 	);
+	const contextStore = new ContextStore([new NumberContextValue("test", 0)]);
+	class TestAchievementClass<
+		const ID extends string,
+		ContextKeys extends string
+	> extends Achievement<ID, ContextKeys, typeof contextStore> {}
 	const mainSave = jest.fn();
 	const store = new AchievementStore(
 		[
-			new Achievement({
+			new TestAchievementClass({
 				id: "test",
 				metrics: metricStore.require.test.greaterThan(10),
 			}),
-			new Achievement({
+			new TestAchievementClass({
 				id: "test2",
 				metrics: metricStore.and(
 					metricStore.require.test.greaterThan(10),
 					metricStore.require.test2.greaterThan(10)
 				),
 			}),
-			new Achievement({
+			new TestAchievementClass({
 				id: "test3",
 				metrics: metricStore.or(
 					metricStore.require.test.greaterThan(100),
 					metricStore.require.test3.greaterThan(0)
 				),
 			}),
-			new Achievement({
+			new TestAchievementClass({
 				id: "test4",
 				metrics: metricStore.not(metricStore.require.test.greaterThan(10)),
 			}),
-			new Achievement({
+			new TestAchievementClass({
 				id: "test5",
 				metrics: metricStore.never(),
+			}),
+			new TestAchievementClass({
+				id: "contextTest",
+				metrics: metricStore.never(),
+				contextKeys: ["test"],
 			}),
 		],
 		{
 			save: mainSave,
 			load: () => "",
+			metricsStore: metricStore,
+			contextStore: contextStore,
 		}
 	);
 
@@ -96,7 +109,7 @@ describe("AchievementStore", () => {
 		const listener = jest.fn();
 		store.on("achievementGranted", listener);
 		metricStore.setMetric("test", 11);
-		store.evaluateAchievement("test", metricStore);
+		store.evaluateAchievement("test");
 		// Event should be emitted
 		expect(listener).toHaveBeenCalledWith("test");
 		// Metadata should be updated
@@ -106,26 +119,26 @@ describe("AchievementStore", () => {
 		// It should save the achievements
 		expect(mainSave).toHaveBeenCalledTimes(1);
 		metricStore.setMetric("test2", 11);
-		store.evaluateAchievement("test2", metricStore);
+		store.evaluateAchievement("test2");
 		expect(listener).toHaveBeenCalledWith("test2");
 		expect(store.achievementsMetadata.get("test2")?.grantedAt).not.toBeNull();
 		expect(store.metricToAchievementMap.get("test")).not.toContain("test2");
 		expect(store.metricToAchievementMap.get("test2")).not.toContain("test2");
 		expect(mainSave).toHaveBeenCalledTimes(2);
 		metricStore.setMetric("test3", 1);
-		store.evaluateAchievement("test3", metricStore);
+		store.evaluateAchievement("test3");
 		expect(listener).toHaveBeenCalledWith("test3");
 		expect(store.achievementsMetadata.get("test3")?.grantedAt).not.toBeNull();
 		expect(store.metricToAchievementMap.get("test")).not.toContain("test3");
 		expect(store.metricToAchievementMap.get("test3")).not.toContain("test3");
 		expect(mainSave).toHaveBeenCalledTimes(3);
 		metricStore.setMetric("test", 9);
-		store.evaluateAchievement("test4", metricStore);
+		store.evaluateAchievement("test4");
 		expect(listener).toHaveBeenCalledWith("test4");
 		expect(store.achievementsMetadata.get("test4")?.grantedAt).not.toBeNull();
 		expect(store.metricToAchievementMap.get("test")).not.toContain("test4");
 		expect(mainSave).toHaveBeenCalledTimes(4);
-		store.evaluateAchievement("test5", metricStore);
+		store.evaluateAchievement("test5");
 		expect(listener).not.toHaveBeenCalledWith("test5");
 		expect(store.achievementsMetadata.get("test5")?.grantedAt).toBeNull();
 		expect(mainSave).not.toHaveBeenCalledTimes(5);
@@ -154,15 +167,30 @@ describe("AchievementStore", () => {
 			{
 				save: save,
 				load: () => "",
+				metricsStore: metricStore,
 			}
 		);
 		const listener = jest.fn();
 		newStore.on("achievementGranted", listener);
 		metricStore.setMetric("test", 11);
-		newStore.evaluateAchievementsForMetrics(["test"], metricStore);
+		newStore.evaluateAchievementsForMetrics(["test"]);
 		expect(listener).toHaveBeenCalledWith("test");
 		expect(listener).toHaveBeenCalledWith("test2");
 		expect(listener).not.toHaveBeenCalledWith("test3");
 		expect(save).toHaveBeenCalledTimes(1);
+	});
+
+	it("should store metadata for granted achievments, including context values", () => {
+		expect(store.getAchievementMetadata("contextTest")).toEqual({
+			granted: false,
+			grantedAt: null,
+		});
+		contextStore.setContextValue("test", 5);
+		store.grantAchievement("contextTest");
+		expect(store.getAchievementMetadata("contextTest")).toEqual({
+			granted: true,
+			grantedAt: expect.any(Date),
+			test: 5,
+		});
 	});
 });

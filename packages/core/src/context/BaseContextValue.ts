@@ -1,13 +1,14 @@
 import { Serializable } from "../CommonTypes";
 
-export abstract class BaseMetric<
+export type ContextValue<ValueType> = ValueType | (() => ValueType);
+
+export class BaseContextValue<
 	ID extends string,
 	ValueType,
 	Serialized extends Serializable
 > {
 	id: ID;
-	defaultValue: ValueType;
-	declare valueType: ValueType;
+	defaultValue: ContextValue<ValueType>;
 	serializeValue(value: ValueType): Serialized {
 		return value as unknown as Serialized;
 	}
@@ -15,7 +16,7 @@ export abstract class BaseMetric<
 		return value as unknown as ValueType;
 	}
 
-	constructor(id: ID, defaultValue: ValueType) {
+	constructor(id: ID, defaultValue: ContextValue<ValueType>) {
 		this.id = id;
 		this.defaultValue = defaultValue;
 	}

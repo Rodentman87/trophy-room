@@ -1,5 +1,6 @@
 import EventEmitter from "eventemitter3";
-import { BaseMetric, Serializable } from "./BaseMetric";
+import { Prettify, Serializable } from "../CommonTypes";
+import { BaseMetric } from "./BaseMetric";
 
 type MetricValueType<
 	Metrics extends BaseMetric<string, unknown, Serializable>[],
@@ -43,10 +44,6 @@ export interface AchievementMetricNever {
 interface MetricStoreEvents {
 	metricsUpdated: (metrics: string[]) => void;
 }
-
-// This type is a bit of a hack, but it makes mapped types much more readable for the end user.
-// eslint-disable-next-line @typescript-eslint/ban-types
-type Prettify<T> = T & {};
 
 export interface MetricsStoreOptions {
 	save: (serialized: string) => void | Promise<void>;

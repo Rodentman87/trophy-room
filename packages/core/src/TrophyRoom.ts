@@ -1,12 +1,12 @@
 import EventEmitter from "eventemitter3";
+import { Serializable } from "./CommonTypes";
 import { Achievement } from "./achievments/Achievement";
 import { AchievementStore } from "./achievments/AchievementStore";
 import { BaseMetric, MetricsStore } from "./metrics";
-import { Serializable } from "./metrics/BaseMetric";
 
 export interface TrophyRoomOptions<
 	Metrics extends BaseMetric<string, unknown, Serializable>[],
-	Achievements extends Achievement[]
+	Achievements extends Achievement<string, string>[]
 > {
 	metrics: MetricsStore<Metrics>;
 	achievements: AchievementStore<Achievements>;
@@ -19,7 +19,7 @@ interface TrophyRoomEvents {
 
 export class TrophyRoom<
 	Metrics extends BaseMetric<string, unknown, Serializable>[],
-	Achievements extends Achievement[]
+	Achievements extends Achievement<string, string>[]
 > extends EventEmitter<TrophyRoomEvents> {
 	metrics: MetricsStore<Metrics>;
 	achievements: AchievementStore<Achievements>;
@@ -33,7 +33,7 @@ export class TrophyRoom<
 		this.metrics = metrics;
 		this.achievements = achievements;
 		this.metrics.on("metricsUpdated", (metrics) => {
-			this.achievements.evaluateAchievementsForMetrics(metrics, this.metrics);
+			this.achievements.evaluateAchievementsForMetrics(metrics);
 		});
 		// Call the load function for both stores
 		Promise.all([

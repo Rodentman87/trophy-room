@@ -31,6 +31,7 @@ describe("TrophyRoom", () => {
 		{
 			save: () => {},
 			load: () => "{}",
+			metricsStore: metricStore,
 		}
 	);
 	const trophyRoom = new TrophyRoom({

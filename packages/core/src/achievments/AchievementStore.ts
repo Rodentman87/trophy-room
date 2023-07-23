@@ -1,6 +1,8 @@
 import EventEmitter from "eventemitter3";
+import { Serializable } from "../CommonTypes";
+import { BaseContextValue } from "../context/BaseContextValue";
+import { ContextStore } from "../context/ContextStore";
 import { BaseMetric } from "../metrics";
-import { Serializable } from "../metrics/BaseMetric";
 import {
 	AchievementMetricRequirement,
 	MetricsStore,
@@ -11,10 +13,15 @@ interface AchievementStoreEvents {
 	achievementGranted: (achievementId: string) => void;
 }
 
-interface AchievementMetadata {
-	grantedAt: Date | null;
-	// TODO context stuff
-}
+type BaseAchievementMetadata =
+	| {
+			granted: true;
+			grantedAt: Date;
+	  }
+	| {
+			granted: false;
+			grantedAt: null;
+	  };
 
 interface SerializedAchievementMetadata {
 	grantedAt: string | null;
@@ -23,23 +30,55 @@ interface SerializedAchievementMetadata {
 interface AchievementStoreOptions {
 	save: (serialized: string) => void | Promise<void>;
 	load: () => string | Promise<string>;
+	metricsStore: MetricsStore<BaseMetric<string, unknown, Serializable>[]>;
+	contextStore?: ContextStore;
 }
 
+type ContextShape<Context extends ContextStore, ContextKeys extends string> =
+	| {
+			granted: false;
+			grantedAt: null;
+	  }
+	| ({
+			[Key in ContextKeys]: Context extends ContextStore<infer ContextValues>
+				? Extract<ContextValues[number], { id: Key }> extends BaseContextValue<
+						string,
+						infer ValueType,
+						Serializable
+				  >
+					? ValueType
+					: never
+				: never;
+	  } & {
+			granted: true;
+			grantedAt: Date;
+	  });
+
 export class AchievementStore<
-	Achievements extends Achievement[]
+	Achievements extends Achievement<string, string>[]
 > extends EventEmitter<AchievementStoreEvents> {
-	achievements = new Map<Achievements[number]["id"], Achievement>();
-	achievementsMetadata = new Map<string, AchievementMetadata>();
+	achievements = new Map<
+		Achievements[number]["id"],
+		Achievement<string, string>
+	>();
+	achievementsMetadata = new Map<
+		string,
+		Omit<BaseAchievementMetadata, "granted">
+	>();
 	metricToAchievementMap = new Map<string, Achievements[number]["id"][]>();
 	private evaluatingMultipleAchievements = false;
 
 	saveFunction: AchievementStoreOptions["save"];
 	loadFunction: AchievementStoreOptions["load"];
+	metricsStore: AchievementStoreOptions["metricsStore"];
+	contextStore?: AchievementStoreOptions["contextStore"];
 
 	constructor(achievements: Achievements, options: AchievementStoreOptions) {
 		super();
 		this.saveFunction = options.save;
 		this.loadFunction = options.load;
+		this.metricsStore = options.metricsStore;
+		this.contextStore = options.contextStore;
 		achievements.forEach((achievement) => {
 			this.achievements.set(achievement.id, achievement);
 			this.achievementsMetadata.set(achievement.id, {
@@ -121,6 +160,26 @@ export class AchievementStore<
 		}
 	}
 
+	getAchievementMetadata<ID extends Achievements[number]["id"]>(
+		achievementId: ID
+	): Extract<Achievements[number], { id: ID }> extends Achievement<
+		string,
+		infer ContextKeys,
+		infer Context
+	>
+		? ContextShape<Context, ContextKeys>
+		: never {
+		const metadata = this.achievementsMetadata.get(achievementId);
+		if (!metadata) {
+			throw new Error(`Achievement ${achievementId} does not exist`);
+		}
+		return {
+			...metadata,
+			granted: metadata.grantedAt !== null,
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any;
+	}
+
 	/**
 	 * Grants an achievement. This can be called manually, but is usually called automatically when an achievement is earned.
 	 * This function will emit the `achievementGranted` event if the achievement was not already granted, and will update the metadata for
@@ -138,10 +197,10 @@ export class AchievementStore<
 			return;
 		}
 		// Update the metadata
-		// TODO context stuff
 		this.achievementsMetadata.set(achievementId, {
 			...current!,
 			grantedAt: new Date(),
+			...this.contextStore?.getContextValues(achievement.contextKeys),
 		});
 		// Save the metadata (if we're not potentially updating multiple achievements)
 		if (!this.evaluatingMultipleAchievements) {
@@ -166,10 +225,7 @@ export class AchievementStore<
 	 * @param metrics The metrics that were updated
 	 * @param metricsStore The metrics store to evaluate the achievements with
 	 */
-	evaluateAchievementsForMetrics(
-		metrics: string[],
-		metricsStore: MetricsStore<BaseMetric<string, unknown, Serializable>[]>
-	) {
+	evaluateAchievementsForMetrics(metrics: string[]) {
 		this.evaluatingMultipleAchievements = true;
 		const relevantAchievements = Array.from(
 			new Set(
@@ -179,7 +235,7 @@ export class AchievementStore<
 			)
 		);
 		relevantAchievements.forEach((achievementId) =>
-			this.evaluateAchievement(achievementId, metricsStore)
+			this.evaluateAchievement(achievementId)
 		);
 		this.evaluatingMultipleAchievements = false;
 		// Save once manually at the end
@@ -192,10 +248,7 @@ export class AchievementStore<
 	 * @param achievementId The achievement to evaluate
 	 * @param metricsStore The metrics store to evaluate the achievement with
 	 */
-	evaluateAchievement(
-		achievementId: Achievements[number]["id"],
-		metricsStore: MetricsStore<BaseMetric<string, unknown, Serializable>[]>
-	) {
+	evaluateAchievement(achievementId: Achievements[number]["id"]) {
 		const achievement = this.achievements.get(achievementId);
 		if (!achievement) {
 			throw new Error(`Achievement ${achievementId} does not exist`);
@@ -205,10 +258,7 @@ export class AchievementStore<
 			// Already granted
 			return;
 		}
-		const requirementsMet = this.checkRequirement(
-			achievement.metrics,
-			metricsStore
-		);
+		const requirementsMet = this.checkRequirement(achievement.metrics);
 		if (requirementsMet) {
 			this.grantAchievement(achievementId);
 		}
@@ -220,31 +270,24 @@ export class AchievementStore<
 	 * @param metricsStore The metrics store to check the requirement with
 	 * @returns Whether or not the requirement is met
 	 */
-	checkRequirement(
-		req: AchievementMetricRequirement,
-		metricsStore: MetricsStore<BaseMetric<string, unknown, Serializable>[]>
-	): boolean {
+	checkRequirement(req: AchievementMetricRequirement): boolean {
 		let metric;
 		switch (req.type) {
 			case "comparison":
-				metric = metricsStore.getMetric(req.metric);
+				metric = this.metricsStore.getMetric(req.metric);
 				return (
 					metric[req.comparisonType as keyof typeof metric] as (
 						value: unknown,
 						target: unknown,
 						options?: unknown
 					) => boolean
-				)(metricsStore.getMetricValue(req.metric), req.value, req.options);
+				)(this.metricsStore.getMetricValue(req.metric), req.value, req.options);
 			case "and":
-				return req.metrics.every((metric) =>
-					this.checkRequirement(metric, metricsStore)
-				);
+				return req.metrics.every((metric) => this.checkRequirement(metric));
 			case "or":
-				return req.metrics.some((metric) =>
-					this.checkRequirement(metric, metricsStore)
-				);
+				return req.metrics.some((metric) => this.checkRequirement(metric));
 			case "not":
-				return !this.checkRequirement(req.metric, metricsStore);
+				return !this.checkRequirement(req.metric);
 			case "never":
 				return false;
 		}
