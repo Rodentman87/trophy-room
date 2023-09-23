@@ -50,9 +50,9 @@ describe("TrophyRoom", () => {
 		trophyRoom.achievements.revokeAchievement("test");
 		const listener = jest.fn();
 		trophyRoom.achievements.on("achievementGranted", listener);
-		metricStore.setMetric("test", 11);
+		metricStore.setMetricValue("test", 11);
 		expect(listener).toHaveBeenCalledWith("test");
-		metricStore.setMetric("test2", 11);
+		metricStore.setMetricValue("test2", 11);
 		expect(listener).toHaveBeenCalledWith("test2");
 	});
 });

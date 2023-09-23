@@ -1,2 +1,2 @@
 export { Achievement } from "./Achievement";
-export { AchievementStore } from "./AchievementStore";
+export { AchievementStore, type ContextShape } from "./AchievementStore";

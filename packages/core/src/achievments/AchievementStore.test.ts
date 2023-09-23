@@ -108,7 +108,7 @@ describe("AchievementStore", () => {
 	it("should grant achievements if all requirements are met", () => {
 		const listener = jest.fn();
 		store.on("achievementGranted", listener);
-		metricStore.setMetric("test", 11);
+		metricStore.setMetricValue("test", 11);
 		store.evaluateAchievement("test");
 		// Event should be emitted
 		expect(listener).toHaveBeenCalledWith("test");
@@ -118,21 +118,21 @@ describe("AchievementStore", () => {
 		expect(store.metricToAchievementMap.get("test")).not.toContain("test");
 		// It should save the achievements
 		expect(mainSave).toHaveBeenCalledTimes(1);
-		metricStore.setMetric("test2", 11);
+		metricStore.setMetricValue("test2", 11);
 		store.evaluateAchievement("test2");
 		expect(listener).toHaveBeenCalledWith("test2");
 		expect(store.achievementsMetadata.get("test2")?.grantedAt).not.toBeNull();
 		expect(store.metricToAchievementMap.get("test")).not.toContain("test2");
 		expect(store.metricToAchievementMap.get("test2")).not.toContain("test2");
 		expect(mainSave).toHaveBeenCalledTimes(2);
-		metricStore.setMetric("test3", 1);
+		metricStore.setMetricValue("test3", 1);
 		store.evaluateAchievement("test3");
 		expect(listener).toHaveBeenCalledWith("test3");
 		expect(store.achievementsMetadata.get("test3")?.grantedAt).not.toBeNull();
 		expect(store.metricToAchievementMap.get("test")).not.toContain("test3");
 		expect(store.metricToAchievementMap.get("test3")).not.toContain("test3");
 		expect(mainSave).toHaveBeenCalledTimes(3);
-		metricStore.setMetric("test", 9);
+		metricStore.setMetricValue("test", 9);
 		store.evaluateAchievement("test4");
 		expect(listener).toHaveBeenCalledWith("test4");
 		expect(store.achievementsMetadata.get("test4")?.grantedAt).not.toBeNull();
@@ -162,13 +162,13 @@ describe("AchievementStore", () => {
 	});
 
 	it("should error on an achievement that doesn't exist", () => {
-		// @ts-expect-error - should error
+		// @ts-expect-error - Testing invalid achievement ID
 		expect(() => store.grantAchievement("test6")).toThrow();
-		// @ts-expect-error - should error
+		// @ts-expect-error - Testing invalid achievement ID
 		expect(() => store.evaluateAchievement("test6")).toThrow();
-		// @ts-expect-error - should error
+		// @ts-expect-error - Testing invalid achievement ID
 		expect(() => store.getAchievementMetadata("test6")).toThrow();
-		// @ts-expect-error - should error
+		// @ts-expect-error - Testing invalid achievement ID
 		expect(() => store.revokeAchievement("test6")).toThrow();
 	});
 
@@ -200,7 +200,7 @@ describe("AchievementStore", () => {
 		);
 		const listener = jest.fn();
 		newStore.on("achievementGranted", listener);
-		metricStore.setMetric("test", 11);
+		metricStore.setMetricValue("test", 11);
 		newStore.evaluateAchievementsForMetrics(["test"]);
 		expect(listener).toHaveBeenCalledWith("test");
 		expect(listener).toHaveBeenCalledWith("test2");

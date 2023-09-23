@@ -35,7 +35,10 @@ interface AchievementStoreOptions {
 	contextStore?: ContextStore;
 }
 
-type ContextShape<Context extends ContextStore, ContextKeys extends string> =
+export type ContextShape<
+	Context extends ContextStore,
+	ContextKeys extends string
+> =
 	| {
 			granted: false;
 			grantedAt: null;
@@ -56,7 +59,9 @@ type ContextShape<Context extends ContextStore, ContextKeys extends string> =
 	  });
 
 export class AchievementStore<
-	Achievements extends Achievement<string, string>[]
+	const Achievements extends
+		| Achievement<string, string>[]
+		| readonly Achievement<string, string>[]
 > extends EventEmitter<AchievementStoreEvents> {
 	achievements = new Map<
 		Achievements[number]["id"],
@@ -161,6 +166,26 @@ export class AchievementStore<
 		}
 	}
 
+	/**
+	 * Returns the achievement with the given ID
+	 * @param achievementId The achievement to get
+	 * @returns The achievement's information
+	 */
+	getAchievement<ID extends Achievements[number]["id"]>(
+		achievementId: ID
+	): Extract<Achievements[number], { id: ID }> {
+		const achievement = this.achievements.get(achievementId);
+		if (!achievement) {
+			throw new Error(`Achievement ${achievementId} does not exist`);
+		}
+		return achievement as Extract<Achievements[number], { id: ID }>;
+	}
+
+	/**
+	 * Returns the metadata for an achievement. This includes the granted status, and any context values that were stored when the achievement was granted
+	 * @param achievementId The achievement to get the metadata for
+	 * @returns The metadata for the achievement
+	 */
 	getAchievementMetadata<ID extends Achievements[number]["id"]>(
 		achievementId: ID
 	): Extract<Achievements[number], { id: ID }> extends Achievement<

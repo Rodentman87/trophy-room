@@ -6,7 +6,9 @@ import { BaseMetric, MetricsStore } from "./metrics";
 
 export interface TrophyRoomOptions<
 	Metrics extends BaseMetric<string, unknown, Serializable>[],
-	Achievements extends Achievement<string, string>[]
+	Achievements extends
+		| Achievement<string, string>[]
+		| readonly Achievement<string, string>[]
 > {
 	metrics: MetricsStore<Metrics>;
 	achievements: AchievementStore<Achievements>;
@@ -19,7 +21,9 @@ interface TrophyRoomEvents {
 
 export class TrophyRoom<
 	Metrics extends BaseMetric<string, unknown, Serializable>[],
-	Achievements extends Achievement<string, string>[]
+	Achievements extends
+		| Achievement<string, string>[]
+		| readonly Achievement<string, string>[]
 > extends EventEmitter<TrophyRoomEvents> {
 	metrics: MetricsStore<Metrics>;
 	achievements: AchievementStore<Achievements>;

@@ -89,16 +89,16 @@ describe("MetricsStore", () => {
 	it("should store metric values", () => {
 		expect(store.getMetricValue("number")).toBe(0);
 		expect(store.getMetricValue("boolean")).toBe(false);
-		store.setMetric("number", 5);
-		store.setMetric("boolean", true);
+		store.setMetricValue("number", 5);
+		store.setMetricValue("boolean", true);
 		expect(store.getMetricValue("number")).toBe(5);
 		expect(store.getMetricValue("boolean")).toBe(true);
 	});
 
 	it("should call an updater function when setting a metric", () => {
-		store.setMetric("number", 5);
+		store.setMetricValue("number", 5);
 		expect(store.getMetricValue("number")).toBe(5);
-		store.setMetric("number", (value) => value + 1);
+		store.setMetricValue("number", (value) => value + 1);
 		expect(store.getMetricValue("number")).toBe(6);
 	});
 
@@ -108,7 +108,7 @@ describe("MetricsStore", () => {
 			save: saveFunction,
 			load: () => "{}",
 		});
-		savingStore.setMetric("number", 5);
+		savingStore.setMetricValue("number", 5);
 		expect(saveFunction).toBeCalledTimes(1);
 		expect(saveFunction).toBeCalledWith('{"number":5,"boolean":false}');
 	});
@@ -132,8 +132,8 @@ describe("MetricsStore", () => {
 			load: () => "{}",
 		});
 		savingStore.updateMultiple(() => {
-			savingStore.setMetric("number", 5);
-			savingStore.setMetric("boolean", true);
+			savingStore.setMetricValue("number", 5);
+			savingStore.setMetricValue("boolean", true);
 		});
 		expect(saveFunction).toBeCalledTimes(1);
 		expect(saveFunction).toBeCalledWith('{"number":5,"boolean":true}');
@@ -142,7 +142,7 @@ describe("MetricsStore", () => {
 	it("should emit an event when a metric is updated", () => {
 		const listener = jest.fn();
 		store.on("metricsUpdated", listener);
-		store.setMetric("number", 5);
+		store.setMetricValue("number", 5);
 		expect(listener).toBeCalledTimes(1);
 		expect(listener).toBeCalledWith(["number"]);
 	});
@@ -151,8 +151,8 @@ describe("MetricsStore", () => {
 		const listener = jest.fn();
 		store.on("metricsUpdated", listener);
 		store.updateMultiple(() => {
-			store.setMetric("number", 5);
-			store.setMetric("boolean", true);
+			store.setMetricValue("number", 5);
+			store.setMetricValue("boolean", true);
 		});
 		expect(listener).toBeCalledTimes(1);
 		expect(listener).toBeCalledWith(["number", "boolean"]);

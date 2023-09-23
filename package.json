@@ -13,7 +13,7 @@
 		"eslint-config-custom": "*",
 		"prettier": "^2.5.1",
 		"turbo": "latest",
-		"typescript": "^5.1.6"
+		"typescript": "^5.2.2"
 	},
 	"name": "trophy-room",
 	"packageManager": "yarn@1.22.19",

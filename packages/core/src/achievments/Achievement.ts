@@ -11,7 +11,7 @@ export interface AchievementOptions<
 }
 
 export class Achievement<
-	ID extends string,
+	const ID extends string,
 	ContextKeys extends string,
 	Context extends ContextStore = ContextStore
 > {

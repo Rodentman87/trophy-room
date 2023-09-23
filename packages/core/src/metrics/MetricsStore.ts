@@ -2,7 +2,7 @@ import EventEmitter from "eventemitter3";
 import { Prettify, Serializable } from "../CommonTypes";
 import { BaseMetric } from "./BaseMetric";
 
-type MetricValueType<
+export type MetricValueType<
 	Metrics extends BaseMetric<string, unknown, Serializable>[],
 	ID extends Metrics[number]["id"]
 > = Extract<Metrics[number], { id: ID }>["valueType"];
@@ -106,6 +106,7 @@ export class MetricsStore<
 			// Set the default values initially, but these will be overwritten when loading
 			this.metricValues.set(metric.id, metric.defaultValue);
 		});
+		this.setMetricValue = this.setMetricValue.bind(this);
 		// The first proxy here handles the metric name (`store.require.points`)
 		this.require = new Proxy(
 			{},
@@ -205,10 +206,9 @@ export class MetricsStore<
 	 * @param id The id of the metric you want to update
 	 * @param valueOrFunction The new value of the metric, or a function that will be called with the current value and should return the new value
 	 */
-	setMetric<
+	setMetricValue<
 		ID extends Metrics[number]["id"],
 		ValueType extends MetricValueType<Metrics, ID>
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	>(id: ID, valueOrFunction: ValueType | ((oldValue: ValueType) => ValueType)) {
 		// Get the metric itself
 		const metric = this.metrics.get(id);
@@ -229,6 +229,22 @@ export class MetricsStore<
 		} else {
 			this.updatedMetrics.push(id);
 		}
+	}
+
+	/**
+	 * This returns a function that can be used to update a metric, this is useful if you want to pass a function to another function.
+	 * @param id The id of the metric you want to get the setter for
+	 * @returns A function that can be called to set the metric's value
+	 */
+	getMetricSetter<
+		ID extends Metrics[number]["id"],
+		ValueType extends MetricValueType<Metrics, ID>
+	>(id: ID) {
+		return (
+			valueOrFunction: ValueType | ((oldValue: ValueType) => ValueType)
+		) => {
+			this.setMetricValue(id, valueOrFunction);
+		};
 	}
 
 	/**
